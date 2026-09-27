@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seguimiento de validaciones</title>
+  <meta name="description" content="Estado de las validaciones por producto: protocolo, etapa, observaciones pendientes y fechas.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e6a86'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-titulo">
+      <h1>Seguimiento de validaciones</h1>
+      <p id="sincronizacion" class="texto-suave">Cargando…</p>
+    </div>
+    <div class="cabecera-acciones" id="acciones" hidden>
+      <button type="button" class="boton boton-secundario" id="btn-exportar" title="Descargar la vista actual como CSV (Excel)">Exportar CSV</button>
+      <button type="button" class="boton boton-primario" id="btn-nueva">+ Nueva validación</button>
+      <div class="usuario" id="usuario" hidden>
+        <span id="usuario-email"></span>
+        <button type="button" class="boton-enlace" id="btn-salir">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="aviso-demo" class="aviso" hidden>
+    <strong>Modo demostración.</strong>
+    Los datos son de ejemplo y se guardan solo en este navegador. Para usar los datos reales,
+    configurá Supabase en <code>js/config.js</code> (ver README).
+    <button type="button" class="boton-enlace" id="btn-restablecer">Restablecer ejemplo</button>
+  </div>
+
+  <!-- Inicio de sesión -->
+  <section id="login" class="login" hidden>
+    <form id="form-login" class="tarjeta login-tarjeta">
+      <h2>Iniciar sesión</h2>
+      <p class="texto-suave">Usá el usuario que te crearon en Supabase.</p>
+      <label>Email
+        <input type="email" name="email" autocomplete="username" required>
+      </label>
+      <label>Contraseña
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <p class="error" id="login-error" role="alert" hidden></p>
+      <button type="submit" class="boton boton-primario">Ingresar</button>
+    </form>
+  </section>
+
+  <main id="app" hidden>
+    <section class="kpis" id="kpis" aria-label="Resumen"></section>
+
+    <section class="tarjeta etapas" aria-labelledby="titulo-etapas">
+      <div class="seccion-cabecera">
+        <h2 id="titulo-etapas">Validaciones por etapa</h2>
+        <span class="texto-suave">Hacé clic en una etapa para filtrar</span>
+      </div>
+      <div class="etapas-flujo" id="etapas-flujo"></div>
+    </section>
+
+    <section class="tarjeta" aria-label="Listado de validaciones">
+      <div class="filtros" id="filtros">
+        <input type="search" id="f-texto" placeholder="Buscar producto, código, responsable u observación…" aria-label="Buscar">
+        <select id="f-tipo" aria-label="Tipo de validación"></select>
+        <select id="f-etapa" aria-label="Etapa"></select>
+        <select id="f-estado" aria-label="Estado"></select>
+        <select id="f-responsable" aria-label="Responsable"></select>
+        <label class="casilla"><input type="checkbox" id="f-cerradas" checked> Incluir cerradas</label>
+        <button type="button" class="boton-enlace" id="btn-limpiar" hidden>Limpiar filtros</button>
+      </div>
+      <p class="texto-suave resultado" id="resultado" aria-live="polite"></p>
+      <div class="tabla-contenedor">
+        <table class="tabla" id="tabla">
+          <thead>
+            <tr>
+              <th><button type="button" data-orden="producto">Producto</button></th>
+              <th><button type="button" data-orden="codigo_protocolo">Protocolo</button></th>
+              <th><button type="button" data-orden="etapa">Etapa</button></th>
+              <th>Lotes</th>
+              <th><button type="button" data-orden="observaciones">Observaciones pendientes</button></th>
+              <th><button type="button" data-orden="fecha_objetivo">Fechas</button></th>
+              <th><button type="button" data-orden="responsable">Responsable</button></th>
+              <th><button type="button" data-orden="estado">Estado</button></th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cuerpo"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Panel de detalle / edición -->
+  <dialog id="panel" class="panel" aria-labelledby="panel-titulo">
+    <div class="panel-cabecera">
+      <div>
+        <h2 id="panel-titulo"></h2>
+        <p id="panel-subtitulo" class="texto-suave"></p>
+      </div>
+      <button type="button" class="boton-icono" id="btn-cerrar-panel" aria-label="Cerrar">✕</button>
+    </div>
+    <nav class="pestanas" id="pestanas" role="tablist">
+      <button type="button" role="tab" data-pestana="datos" aria-selected="true">Datos</button>
+      <button type="button" role="tab" data-pestana="observaciones" aria-selected="false">Observaciones <span id="pestana-obs-n" class="contador"></span></button>
+      <button type="button" role="tab" data-pestana="historial" aria-selected="false">Historial</button>
+    </nav>
+
+    <div class="panel-cuerpo">
+      <form id="form-validacion" data-pestana-contenido="datos" novalidate>
+        <fieldset>
+          <legend>Producto</legend>
+          <div class="grilla">
+            <label class="ancho-2">Producto *
+              <input name="producto" list="lista-productos" required maxlength="120">
+            </label>
+            <label>Presentación
+              <input name="presentacion" placeholder="Ej.: Comprimidos 500 mg" maxlength="120">
+            </label>
+            <label>Tipo de validación
+              <input name="tipo_validacion" list="lista-tipos" required maxlength="60">
+            </label>
+            <label>Prioridad
+              <select name="prioridad">
+                <option>Alta</option><option>Media</option><option>Baja</option>
+              </select>
+            </label>
+            <label>Responsable
+              <input name="responsable" list="lista-responsables" maxlength="80">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Protocolo e informe</legend>
+          <div class="grilla">
+            <label>Código de protocolo
+              <input name="codigo_protocolo" placeholder="Ej.: PV-DOL-001" maxlength="60">
+            </label>
+            <label>Código de informe
+              <input name="codigo_informe" maxlength="60">
+            </label>
+            <label class="ancho-2">Enlace a documentos
+              <input name="enlace_documentos" type="url" placeholder="https://… (SharePoint, Drive, sistema documental)">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Avance</legend>
+          <div class="grilla">
+            <label>Etapa
+              <select name="etapa"></select>
+            </label>
+            <label>Estado
+              <select name="estado">
+                <option>En curso</option><option>En espera</option><option>Bloqueada</option><option>Cancelada</option>
+              </select>
+            </label>
+            <label>Lotes requeridos
+              <input name="lotes_requeridos" type="number" min="0" max="99" step="1">
+            </label>
+            <label>Lotes ejecutados
+              <input name="lotes_ejecutados" type="number" min="0" max="99" step="1">
+            </label>
+            <label class="ancho-2">Números de lote
+              <input name="lotes" placeholder="Ej.: L2401, L2402, L2403" maxlength="200">
+            </label>
+            <label class="ancho-2">Próxima acción
+              <input name="proxima_accion" maxlength="200">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Fechas</legend>
+          <div class="grilla">
+            <label>Inicio
+              <input name="fecha_inicio" type="date">
+            </label>
+            <label>Aprobación del protocolo
+              <input name="fecha_aprobacion_protocolo" type="date">
+            </label>
+            <label>Fecha objetivo de cierre
+              <input name="fecha_objetivo" type="date">
+            </label>
+            <label>Cierre (informe aprobado)
+              <input name="fecha_cierre" type="date">
+            </label>
+            <label>Próxima revalidación
+              <input name="fecha_revalidacion" type="date">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Notas</legend>
+          <textarea name="notas" rows="3" aria-label="Notas"></textarea>
+        </fieldset>
+
+        <p class="texto-suave" id="ultima-modificacion"></p>
+        <p class="error" id="form-error" role="alert" hidden></p>
+        <div class="panel-pie">
+          <button type="button" class="boton boton-peligro" id="btn-eliminar">Eliminar</button>
+          <span class="separador"></span>
+          <button type="button" class="boton boton-secundario" id="btn-cancelar">Cancelar</button>
+          <button type="submit" class="boton boton-primario">Guardar</button>
+        </div>
+      </form>
+
+      <section data-pestana-contenido="observaciones" hidden>
+        <form id="form-observacion" class="obs-nueva">
+          <label>Nueva observación
+            <textarea name="descripcion" rows="2" required placeholder="Qué falta resolver…"></textarea>
+          </label>
+          <div class="grilla">
+            <label>Responsable
+              <input name="responsable" list="lista-responsables" maxlength="80">
+            </label>
+            <label>Fecha compromiso
+              <input name="fecha_compromiso" type="date">
+            </label>
+          </div>
+          <div class="acciones-derecha">
+            <button type="submit" class="boton boton-primario">Agregar</button>
+          </div>
+        </form>
+        <ul class="obs-lista" id="obs-lista"></ul>
+      </section>
+
+      <section data-pestana-contenido="historial" hidden>
+        <ol class="historial" id="historial"></ol>
+      </section>
+    </div>
+  </dialog>
+
+  <datalist id="lista-productos"></datalist>
+  <datalist id="lista-tipos"></datalist>
+  <datalist id="lista-responsables"></datalist>
+
+  <div id="aviso-flotante" class="aviso-flotante" role="status" aria-live="polite" hidden></div>
+
+  <noscript><p class="aviso">Esta página necesita JavaScript habilitado.</p></noscript>
+</body>
+</html>
