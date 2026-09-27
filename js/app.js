@@ -301,7 +301,7 @@ function renderTabla() {
   if (!filas.length) {
     const mensaje = estado.validaciones.length
       ? 'Ninguna validación coincide con los filtros.'
-      : 'Todavía no hay validaciones cargadas. Usá “+ Nueva validación” para agregar la primera.';
+      : 'No hay validaciones cargadas.';
     $('#tabla-cuerpo').innerHTML = `<tr class="vacio"><td colspan="8">${mensaje}</td></tr>`;
     return;
   }
@@ -331,9 +331,9 @@ function filaHTML(v) {
       ${celda('Etapa', `
         <div class="etapa-actual">${escapar(v.etapa)} <span class="texto-suave">${indice + 1}/${total}</span></div>
         <div class="progreso ${cerrada ? 'completo' : ''}" aria-hidden="true">
-          ${estado.etapas.map((_, i) => `<span class="${i <= indice ? 'lleno' : ''}"></span>`).join('')}
+          <span style="width: ${Math.round(((indice + 1) / total) * 100)}%"></span>
         </div>
-        ${v.proxima_accion && !cerrada ? `<div class="proxima-accion">→ ${escapar(v.proxima_accion)}</div>` : ''}`)}
+        ${v.proxima_accion && !cerrada ? `<div class="proxima-accion">Siguiente paso: ${escapar(v.proxima_accion)}</div>` : ''}`)}
       ${celda('Lotes', lotesHTML(v))}
       ${celda('Observaciones pendientes', observacionesHTML(pendientesDe(v.id)), 'data-abrir="observaciones" class="celda-obs"')}
       ${celda('Fechas', fechasHTML(v))}
@@ -344,15 +344,13 @@ function filaHTML(v) {
 
 function enlaceDocumentos(url) {
   if (!url || !/^https?:\/\//i.test(url)) return '';
-  return `<div><a class="enlace-docs" href="${escapar(url)}" target="_blank" rel="noopener noreferrer">Documentos ↗</a></div>`;
+  return `<div><a class="enlace-docs" href="${escapar(url)}" target="_blank" rel="noopener noreferrer">Ver documentos</a></div>`;
 }
 
 function lotesHTML(v) {
   if (!v.lotes_requeridos) return '<span class="texto-suave">No aplica</span>';
-  const puntos = Array.from({ length: Math.min(v.lotes_requeridos, 10) },
-    (_, i) => `<span class="${i < v.lotes_ejecutados ? 'lleno' : ''}"></span>`).join('');
   return `
-    <div class="lotes"><span class="lotes-puntos" aria-hidden="true">${puntos}</span>${v.lotes_ejecutados}/${v.lotes_requeridos}</div>
+    <div class="lotes">${v.lotes_ejecutados} de ${v.lotes_requeridos}</div>
     ${v.lotes ? `<div class="texto-suave lotes-numeros">${escapar(v.lotes)}</div>` : ''}`;
 }
 
@@ -543,7 +541,7 @@ async function guardarValidacion(evento) {
   try {
     await enviarValidacion(datos, propios);
     if (esNueva) abrirPanel(estado.panel.id, 'observaciones');
-    avisar(esNueva ? 'Validación creada. Ya podés agregarle observaciones.' : 'Cambios guardados.');
+    avisar(esNueva ? 'Validación creada.' : 'Cambios guardados.');
   } catch (e) {
     if (e instanceof ConflictoError) await resolverConflicto(datos, propios);
     else mostrarErrorFormulario(mensajeError(e));
@@ -675,9 +673,9 @@ function observacionItemHTML(o) {
   ].filter(Boolean).join(' · ');
   return `
     <li class="obs-item ${cerrada ? 'cerrada' : ''} ${vencida ? 'vencida' : ''}" data-obs="${escapar(o.id)}">
-      <button type="button" class="obs-marca" data-accion="alternar"
+      <input type="checkbox" class="obs-marca" data-accion="alternar" ${cerrada ? 'checked' : ''}
         aria-label="${cerrada ? 'Reabrir observación' : 'Marcar como resuelta'}"
-        title="${cerrada ? 'Reabrir' : 'Marcar como resuelta'}">${cerrada ? '✓' : ''}</button>
+        title="${cerrada ? 'Reabrir' : 'Marcar como resuelta'}">
       <div class="obs-texto">
         <p>${escapar(o.descripcion)}</p>
         <p class="texto-suave">${detalles}</p>
@@ -829,7 +827,7 @@ function historialHTML(h) {
 function listaCambios(cambios) {
   const filas = Object.entries(cambios).map(([campo, [antes, despues]]) => `
     <li><span class="campo">${escapar(ETIQUETAS[campo] ?? campo)}:</span>
-      ${valorHistorial(campo, antes)} <span aria-label="cambió a">→</span> ${valorHistorial(campo, despues)}</li>`);
+      de ${valorHistorial(campo, antes)} a ${valorHistorial(campo, despues)}</li>`);
   return filas.length ? `<ul class="cambios">${filas.join('')}</ul>` : '';
 }
 

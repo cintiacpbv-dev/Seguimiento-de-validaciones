@@ -33,7 +33,7 @@ se comparten entre todos los usuarios y se pueden editar desde la misma página.
 - **Varios usuarios a la vez:** la página se actualiza sola cuando otra persona hace un cambio. Si dos
   personas editan la misma validación, los cambios en campos distintos se combinan. Si cambiaron el
   mismo campo, la página avisa antes de reemplazar el valor.
-- Funciona en computadora y en el celular, en modo claro y oscuro.
+- Funciona en computadora y en el celular.
 
 ## Puesta en marcha
 
@@ -136,7 +136,7 @@ order by o.fecha_compromiso nulls last;
 | Archivo | Contenido |
 |---|---|
 | `index.html` | Estructura de la página |
-| `css/styles.css` | Estilos (claro/oscuro, celular, impresión) |
+| `css/styles.css` | Estilos (paleta rosada, celular, impresión) |
 | `js/app.js` | Vista, filtros, panel de edición, exportación |
 | `js/store.js` | Acceso a datos: Supabase o modo demostración |
 | `js/config.js` | URL y clave pública de Supabase |
