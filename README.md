@@ -42,19 +42,16 @@ se comparten entre todos los usuarios y se pueden editar desde la misma página.
 1. Crear una cuenta y un proyecto nuevo en <https://supabase.com> (el plan gratuito alcanza).
 2. Ir a **SQL Editor → New query**, pegar el contenido de [`supabase/schema.sql`](supabase/schema.sql)
    y presionar **Run**. Esto crea las tablas, el historial automático y los permisos.
+   Conviene copiarlo desde la versión *Raw* del archivo, sin texto seleccionado en el editor.
 3. En otra consulta, ejecutar [`supabase/seed.sql`](supabase/seed.sql). Esto carga los seis productos
    en etapa *Planificación*. Los códigos de protocolo, las fechas y las observaciones se completan
    después desde la página.
 
-### 2. Crear los usuarios
+### 2. Acceso
 
-Solo pueden ver y editar los datos las personas con usuario.
-
-1. **Authentication → Sign In / Providers:** desactivar **Allow new users to sign up**.
-   Así nadie puede crearse una cuenta por su cuenta. Este paso es importante: la página es pública,
-   pero los datos no.
-2. **Authentication → Users → Add user → Create new user:** cargar email y contraseña de cada persona
-   y marcar **Auto Confirm User**.
+La página **no pide usuario ni contraseña**: cualquiera que tenga el link puede ver y editar los datos.
+Compartí el link solo con quien corresponda. Si ya habías ejecutado una versión anterior de `schema.sql`
+(la que pedía iniciar sesión), ejecutá además [`supabase/acceso-sin-login.sql`](supabase/acceso-sin-login.sql).
 
 ### 3. Conectar la página
 
@@ -66,8 +63,8 @@ export const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOi...';
 ```
 
-Esa clave está pensada para usarse en el navegador y se puede publicar. Lo que protege los datos es el
-inicio de sesión más las políticas de seguridad (RLS) de `schema.sql`.
+Esa clave está pensada para usarse en el navegador y se puede publicar. Como la página no tiene inicio
+de sesión, quien tenga la clave (o el link de la página) puede leer y editar las validaciones.
 **No usar nunca la clave `service_role` en este archivo.**
 
 Mientras `js/config.js` esté vacío, la página funciona en **modo demostración**, con datos de ejemplo
@@ -147,5 +144,6 @@ order by o.fecha_compromiso nulls last;
 | `js/util.js` | Fechas y utilidades de texto |
 | `supabase/schema.sql` | Tablas, historial automático, seguridad (RLS) y tiempo real |
 | `supabase/seed.sql` | Carga inicial de productos |
+| `supabase/acceso-sin-login.sql` | Abre el acceso sin contraseña en bases creadas con la versión anterior |
 
 La librería `supabase-js` se carga desde el CDN jsDelivr solo cuando Supabase está configurado.

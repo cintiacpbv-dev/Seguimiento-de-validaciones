@@ -40,7 +40,6 @@ const formulario = $('#form-validacion');
 
 const estado = {
   store: null,
-  usuario: null,
   etapas: [],
   validaciones: [],
   observaciones: [],
@@ -65,30 +64,8 @@ async function iniciar() {
   }
   conectarEventos();
   $('#aviso-demo').hidden = estado.store.modo !== 'demo';
-  await cambiarUsuario(await estado.store.usuarioActual());
-  // Cierre de sesión en otra pestaña, sesión vencida, etc.
-  estado.store.alCambiarSesion((usuario) => {
-    // Diferido: supabase-js no admite llamadas a la base dentro de este callback.
-    setTimeout(() => {
-      if ((usuario?.id ?? null) !== (estado.usuario?.id ?? null)) cambiarUsuario(usuario);
-    });
-  });
-}
-
-async function cambiarUsuario(usuario) {
-  estado.usuario = usuario;
-  const conSesion = Boolean(usuario);
-  $('#login').hidden = conSesion;
-  $('#app').hidden = !conSesion;
-  $('#acciones').hidden = !conSesion;
-  $('#usuario').hidden = !conSesion || estado.store.modo === 'demo';
-  $('#usuario-email').textContent = usuario?.email ?? '';
-  if (!conSesion) {
-    if (panel.open) panel.close();
-    $('#sincronizacion').textContent = 'Iniciá sesión para ver las validaciones.';
-    $('#form-login [name=email]').focus();
-    return;
-  }
+  $('#app').hidden = false;
+  $('#acciones').hidden = false;
   await recargar();
   estado.store.suscribir(programarRecarga);
 }
@@ -843,7 +820,7 @@ function historialHTML(h) {
   }
   return `
     <li>
-      <div class="historial-meta">${formatoFechaHora(h.fecha)}${h.usuario ? ` · ${escapar(h.usuario)}` : ''}</div>
+      <div class="historial-meta">${formatoFechaHora(h.fecha)}${h.usuario && !['anon', 'authenticated'].includes(h.usuario) ? ` · ${escapar(h.usuario)}` : ''}</div>
       <div class="historial-titulo">${titulo}</div>
       ${detalle}
     </li>`;
@@ -920,30 +897,6 @@ function avisar(texto, tipo = 'ok') {
 // ---------------------------------------------------------------------
 
 function conectarEventos() {
-  $('#form-login').addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const form = evento.target;
-    const error = $('#login-error');
-    const boton = form.querySelector('[type=submit]');
-    error.hidden = true;
-    boton.disabled = true;
-    try {
-      await estado.store.iniciarSesion(form.elements.email.value.trim(), form.elements.password.value);
-      form.reset();
-      await cambiarUsuario(await estado.store.usuarioActual());
-    } catch (e) {
-      error.textContent = mensajeError(e);
-      error.hidden = false;
-    } finally {
-      boton.disabled = false;
-    }
-  });
-
-  $('#btn-salir').addEventListener('click', async () => {
-    await estado.store.cerrarSesion();
-    cambiarUsuario(null);
-  });
-
   $('#btn-restablecer').addEventListener('click', () => {
     if (!confirm('¿Volver a los datos de ejemplo? Se pierden los cambios hechos en el modo demostración.')) return;
     estado.store.restablecer();

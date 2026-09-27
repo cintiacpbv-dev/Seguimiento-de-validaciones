@@ -203,33 +203,35 @@ create trigger observaciones_historial
 
 
 -- ---------------------------------------------------------------------
---  Seguridad: solo usuarios con sesión iniciada pueden ver y editar.
---  Los usuarios se crean en Authentication → Users (ver README).
+--  Acceso: la página no pide inicio de sesión, así que cualquiera con la
+--  clave pública (anon) —es decir, con el link de la página— puede ver y
+--  editar. Etapas e historial solo se leen; el historial lo escriben los
+--  triggers.
 -- ---------------------------------------------------------------------
 alter table public.etapas        enable row level security;
 alter table public.validaciones  enable row level security;
 alter table public.observaciones enable row level security;
 alter table public.historial     enable row level security;
 
-revoke all on public.etapas, public.validaciones, public.observaciones, public.historial from anon;
-grant select                         on public.etapas, public.historial           to authenticated;
-grant select, insert, update, delete on public.validaciones, public.observaciones to authenticated;
+revoke all on public.etapas, public.historial from anon, authenticated;
+grant select                         on public.etapas, public.historial           to anon, authenticated;
+grant select, insert, update, delete on public.validaciones, public.observaciones to anon, authenticated;
 
 drop policy if exists "etapas: lectura" on public.etapas;
 create policy "etapas: lectura" on public.etapas
-  for select to authenticated using (true);
+  for select to anon, authenticated using (true);
 
 drop policy if exists "historial: lectura" on public.historial;
 create policy "historial: lectura" on public.historial
-  for select to authenticated using (true);
+  for select to anon, authenticated using (true);
 
 drop policy if exists "validaciones: acceso completo" on public.validaciones;
 create policy "validaciones: acceso completo" on public.validaciones
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists "observaciones: acceso completo" on public.observaciones;
 create policy "observaciones: acceso completo" on public.observaciones
-  for all to authenticated using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 
 -- ---------------------------------------------------------------------

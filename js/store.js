@@ -18,18 +18,15 @@ export class ConflictoError extends Error {
 export async function crearStore() {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     const { createClient } = await import(SUPABASE_JS);
-    return new SupabaseStore(createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
+    return new SupabaseStore(createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } }));
   }
   return new DemoStore();
 }
 
 export function mensajeError(error) {
   const texto = error?.message ?? String(error);
-  if (/invalid login credentials/i.test(texto)) return 'Email o contraseña incorrectos.';
-  if (/email not confirmed/i.test(texto)) return 'El email todavía no fue confirmado.';
   if (/failed to fetch|networkerror|load failed/i.test(texto)) return 'No se pudo conectar con Supabase. Revisá la conexión a internet.';
-  if (/jwt expired/i.test(texto)) return 'La sesión expiró. Volvé a iniciar sesión.';
-  if (/row-level security|permission denied/i.test(texto)) return 'No tenés permiso para realizar esta acción.';
+  if (/row-level security|permission denied/i.test(texto)) return 'Supabase no permite esta acción. ¿Ejecutaste supabase/schema.sql actualizado?';
   return texto;
 }
 
@@ -38,26 +35,6 @@ class SupabaseStore {
 
   constructor(cliente) {
     this.db = cliente;
-  }
-
-  async usuarioActual() {
-    const { data } = await this.db.auth.getSession();
-    return data.session?.user ?? null;
-  }
-
-  alCambiarSesion(callback) {
-    this.db.auth.onAuthStateChange((_evento, sesion) => callback(sesion?.user ?? null));
-  }
-
-  async iniciarSesion(email, password) {
-    const { error } = await this.db.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  }
-
-  async cerrarSesion() {
-    this.canal?.unsubscribe();
-    this.canal = null;
-    await this.db.auth.signOut();
   }
 
   async cargar() {
@@ -135,10 +112,6 @@ class DemoStore {
     this.datos = this.#leer() ?? crearDatosDemo();
   }
 
-  async usuarioActual() { return USUARIO_DEMO; }
-  alCambiarSesion() {}
-  async iniciarSesion() {}
-  async cerrarSesion() {}
   suscribir() {}
 
   restablecer() {

@@ -18,10 +18,6 @@
     <div class="cabecera-acciones" id="acciones" hidden>
       <button type="button" class="boton boton-secundario" id="btn-exportar" title="Descargar la vista actual como CSV (Excel)">Exportar CSV</button>
       <button type="button" class="boton boton-primario" id="btn-nueva">+ Nueva validación</button>
-      <div class="usuario" id="usuario" hidden>
-        <span id="usuario-email"></span>
-        <button type="button" class="boton-enlace" id="btn-salir">Salir</button>
-      </div>
     </div>
   </header>
 
@@ -32,21 +28,6 @@
     <button type="button" class="boton-enlace" id="btn-restablecer">Restablecer ejemplo</button>
   </div>
 
-  <!-- Inicio de sesión -->
-  <section id="login" class="login" hidden>
-    <form id="form-login" class="tarjeta login-tarjeta">
-      <h2>Iniciar sesión</h2>
-      <p class="texto-suave">Usá el usuario que te crearon en Supabase.</p>
-      <label>Email
-        <input type="email" name="email" autocomplete="username" required>
-      </label>
-      <label>Contraseña
-        <input type="password" name="password" autocomplete="current-password" required>
-      </label>
-      <p class="error" id="login-error" role="alert" hidden></p>
-      <button type="submit" class="boton boton-primario">Ingresar</button>
-    </form>
-  </section>
 
   <main id="app" hidden>
     <section class="kpis" id="kpis" aria-label="Resumen"></section>
